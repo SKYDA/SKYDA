@@ -110,9 +110,43 @@ async function getAlbumInfo(album) {
     albumItem: { ...album, description: data.desc }
   }
 }
+async function importMusicSheet(urlLike) {
+  //
+  let id;
+  if (!id) {
+    id = (urlLike.match(
+      /https?:\/\/i\.y\.qq\.com\/n2\/m\/share\/details\/taoge\.html\?.*id=([0-9]+)/
+    ) || [])[1];
+  }
+  if (!id) {
+    id = (urlLike.match(/https?:\/\/y\.qq\.com\/n\/ryqq\/playlist\/([0-9]+)/) ||
+      [])[1];
+  }
+  if (!id) {
+    id = (urlLike.match(/^(\d+)$/) || [])[1];
+  }
+  if (!id) {
+    return;
+  }
+
+  const result = (
+    await axios({
+      url: `http://c.y.qq.com/qzone/fcg-bin/fcg_ucc_getcdinfo_byids_cp.fcg?type=1&utf8=1&disstid=${id}&loginUin=0`,
+      headers: { Referer: "https://y.qq.com/n/yqq/playlist", Cookie: "uin=" },
+      method: "get",
+      xsrfCookieName: "XSRF-TOKEN",
+      withCredentials: true,
+    })
+  ).data;
+  const res = JSON.parse(
+    result.replace(/callback\(|MusicJsonCallback\(|jsonCallback\(|\)$/g, "")
+  );
+  return res.cdlist[0].songlist.map(formatMusicItem);
+}
+
 module.exports = {
   platform,
-  version: '1.1.0',
+  version: '1.2.0',
   appVersion: '>0.0',
   defaultSearchType: 'music',
   srcUrl:
@@ -120,5 +154,6 @@ module.exports = {
   search,
   getMediaSource,
   getLyric,
-  getAlbumInfo
+  getAlbumInfo,
+  importMusicSheet,
 }
